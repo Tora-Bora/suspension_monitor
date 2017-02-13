@@ -9,6 +9,10 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.example.max.suspensionmonitor.Concrete.ITelemetryDataCollector;
+import com.example.max.suspensionmonitor.Concrete.TelemetryDataFile;
+import com.example.max.suspensionmonitor.Domain.SensorsSampleV1;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -16,7 +20,8 @@ import java.util.UUID;
 
 public class BluetoothTelemetryService extends Service {
 
-    private static final String TAG = "DeviceListActivity";
+    private static final String TAG = "DEBUG BT";
+    private static final String TAG_SERVICE = "BT SERVICE";
 
     final int handlerState = 0;                        //used to identify handler message
     Handler bluetoothIn;
@@ -29,9 +34,11 @@ public class BluetoothTelemetryService extends Service {
     // SPP UUID service - this should work for most devices
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     // String for MAC address
-    private String address = "YOUR:MAC:ADDRESS:HERE";
+    private String address = "";
 
     private StringBuilder recDataString = new StringBuilder();
+
+    private ITelemetryDataCollector dataCollector = new TelemetryDataFile();
 
     public BluetoothTelemetryService() {
     }
@@ -61,9 +68,16 @@ public class BluetoothTelemetryService extends Service {
                 if (msg.what == handlerState) {                                     //if message is what we want
                     String readMessage = (String) msg.obj;                                                                // msg.arg1 = bytes from connect thread
                     recDataString.append(readMessage);//`enter code here`
-                    Log.d("RECORDED", recDataString.toString());
-                    // Do stuff here with your data, like adding it to the database
-                    recDataString.delete(0, recDataString.length());                    //clear all string data
+
+                    int endOfLineIndex = recDataString.indexOf("\r\n");                    // determine the end-of-line
+                    while(endOfLineIndex > 0) {
+                        String data = recDataString.substring(0, endOfLineIndex);
+
+                        dataCollector.AppendSample(new SensorsSampleV1(data));
+
+                        recDataString.delete(0, endOfLineIndex + 2);
+                        endOfLineIndex = recDataString.indexOf("\r\n");
+                    }
                 }
             }
         };
@@ -138,34 +152,34 @@ public class BluetoothTelemetryService extends Service {
         @Override
         public void run() {
             super.run();
-            Log.d("DEBUG BT", "IN CONNECTING THREAD RUN");
+            Log.d(TAG, "IN CONNECTING THREAD RUN");
             // Establish the Bluetooth socket connection.
             // Cancelling discovery as it may slow down connection
             btAdapter.cancelDiscovery();
             try {
                 mmSocket.connect();
-                Log.d("DEBUG BT", "BT SOCKET CONNECTED");
+                Log.d(TAG, "BT SOCKET CONNECTED");
                 mConnectedThread = new ConnectedThread(mmSocket);
                 mConnectedThread.start();
-                Log.d("DEBUG BT", "CONNECTED THREAD STARTED");
+                Log.d(TAG, "CONNECTED THREAD STARTED");
                 //I send a character when resuming.beginning transmission to check device is connected
                 //If it is not an exception will be thrown in the write method and finish() will be called
                 mConnectedThread.write("x");
             } catch (IOException e) {
                 try {
-                    Log.d("DEBUG BT", "SOCKET CONNECTION FAILED : " + e.toString());
-                    Log.d("BT SERVICE", "SOCKET CONNECTION FAILED, STOPPING SERVICE");
+                    Log.d(TAG, "SOCKET CONNECTION FAILED : " + e.toString());
+                    Log.d(TAG_SERVICE, "SOCKET CONNECTION FAILED, STOPPING SERVICE");
                     mmSocket.close();
                     stopSelf();
                 } catch (IOException e2) {
-                    Log.d("DEBUG BT", "SOCKET CLOSING FAILED :" + e2.toString());
-                    Log.d("BT SERVICE", "SOCKET CLOSING FAILED, STOPPING SERVICE");
+                    Log.d(TAG, "SOCKET CLOSING FAILED :" + e2.toString());
+                    Log.d(TAG_SERVICE, "SOCKET CLOSING FAILED, STOPPING SERVICE");
                     stopSelf();
                     //insert code to deal with this
                 }
             } catch (IllegalStateException e) {
-                Log.d("DEBUG BT", "CONNECTED THREAD START FAILED : " + e.toString());
-                Log.d("BT SERVICE", "CONNECTED THREAD START FAILED, STOPPING SERVICE");
+                Log.d(TAG, "CONNECTED THREAD START FAILED : " + e.toString());
+                Log.d(TAG_SERVICE, "CONNECTED THREAD START FAILED, STOPPING SERVICE");
                 stopSelf();
             }
         }
@@ -176,8 +190,8 @@ public class BluetoothTelemetryService extends Service {
                 mmSocket.close();
             } catch (IOException e2) {
                 //insert code to deal with this
-                Log.d("DEBUG BT", e2.toString());
-                Log.d("BT SERVICE", "SOCKET CLOSING FAILED, STOPPING SERVICE");
+                Log.d(TAG, e2.toString());
+                Log.d(TAG_SERVICE, "SOCKET CLOSING FAILED, STOPPING SERVICE");
                 stopSelf();
             }
         }
@@ -190,7 +204,7 @@ public class BluetoothTelemetryService extends Service {
 
         //creation of the connect thread
         public ConnectedThread(BluetoothSocket socket) {
-            Log.d("DEBUG BT", "IN CONNECTED THREAD");
+            Log.d(TAG, "IN CONNECTED THREAD");
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
 
@@ -199,8 +213,8 @@ public class BluetoothTelemetryService extends Service {
                 tmpIn = socket.getInputStream();
                 tmpOut = socket.getOutputStream();
             } catch (IOException e) {
-                Log.d("DEBUG BT", e.toString());
-                Log.d("BT SERVICE", "UNABLE TO READ/WRITE, STOPPING SERVICE");
+                Log.d(TAG, e.toString());
+                Log.d(TAG_SERVICE, "UNABLE TO READ/WRITE, STOPPING SERVICE");
                 stopSelf();
             }
 
@@ -209,7 +223,7 @@ public class BluetoothTelemetryService extends Service {
         }
 
         public void run() {
-            Log.d("DEBUG BT", "IN CONNECTED THREAD RUN");
+            Log.d(TAG, "IN CONNECTED THREAD RUN");
             byte[] buffer = new byte[256];
             int bytes;
 
@@ -218,12 +232,12 @@ public class BluetoothTelemetryService extends Service {
                 try {
                     bytes = mmInStream.read(buffer);            //read bytes from input buffer
                     String readMessage = new String(buffer, 0, bytes);
-                    Log.d("DEBUG BT PART", "CONNECTED THREAD " + readMessage);
+                    //Log.d("DEBUG BT PART", "CONNECTED THREAD " + readMessage);
                     // Send the obtained bytes to the UI Activity via handler
                     bluetoothIn.obtainMessage(handlerState, bytes, -1, readMessage).sendToTarget();
                 } catch (IOException e) {
-                    Log.d("DEBUG BT", e.toString());
-                    Log.d("BT SERVICE", "UNABLE TO READ/WRITE, STOPPING SERVICE");
+                    Log.d(TAG, e.toString());
+                    Log.d(TAG_SERVICE, "UNABLE TO READ/WRITE, STOPPING SERVICE");
                     stopSelf();
                     break;
                 }
@@ -237,8 +251,8 @@ public class BluetoothTelemetryService extends Service {
                 mmOutStream.write(msgBuffer);                //write bytes over BT connection via outstream
             } catch (IOException e) {
                 //if you cannot write, close the application
-                Log.d("DEBUG BT", "UNABLE TO READ/WRITE " + e.toString());
-                Log.d("BT SERVICE", "UNABLE TO READ/WRITE, STOPPING SERVICE");
+                Log.d(TAG, "UNABLE TO READ/WRITE " + e.toString());
+                Log.d(TAG_SERVICE, "UNABLE TO READ/WRITE, STOPPING SERVICE");
                 stopSelf();
             }
         }
@@ -250,8 +264,8 @@ public class BluetoothTelemetryService extends Service {
                 mmOutStream.close();
             } catch (IOException e2) {
                 //insert code to deal with this
-                Log.d("DEBUG BT", e2.toString());
-                Log.d("BT SERVICE", "STREAM CLOSING FAILED, STOPPING SERVICE");
+                Log.d(TAG, e2.toString());
+                Log.d(TAG_SERVICE, "STREAM CLOSING FAILED, STOPPING SERVICE");
                 stopSelf();
             }
         }
