@@ -9,7 +9,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.example.max.suspensionmonitor.Concrete.ITelemetryDataCollector;
+import com.example.max.suspensionmonitor.Concrete.IV1DataCollector;
 import com.example.max.suspensionmonitor.Concrete.TelemetryDataFile;
 import com.example.max.suspensionmonitor.Domain.SensorsSampleV1;
 
@@ -38,7 +38,7 @@ public class BluetoothTelemetryService extends Service {
 
     private StringBuilder recDataString = new StringBuilder();
 
-    private ITelemetryDataCollector dataCollector = new TelemetryDataFile();
+    private IV1DataCollector dataCollector = new TelemetryDataFile();
 
     public BluetoothTelemetryService() {
     }

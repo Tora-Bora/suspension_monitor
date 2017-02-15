@@ -20,7 +20,6 @@ public class SensorsSampleV1 {
     }
 
 
-
     public void Deserialize(String rawData)
     {
         String[] packet = rawData.split(";");
