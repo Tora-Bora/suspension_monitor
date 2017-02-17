@@ -5,13 +5,15 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.example.max.suspensionmonitor.Communications.ISampleReceiver;
 import com.example.max.suspensionmonitor.Concrete.IV1DataCollector;
 import com.example.max.suspensionmonitor.Concrete.TelemetryDataFile;
-import com.example.max.suspensionmonitor.Domain.SensorsSampleV1;
+import com.example.max.suspensionmonitor.Domain.SampleV1;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +21,11 @@ import java.io.OutputStream;
 import java.util.UUID;
 
 public class BluetoothTelemetryService extends Service {
+
+    // Binder given to clients
+    private final IBinder binder = new LocalBinder();
+    // Registered callbacks
+    private ISampleReceiver sampleReceiver;
 
     private static final String TAG = "DEBUG BT";
     private static final String TAG_SERVICE = "BT SERVICE";
@@ -43,10 +50,22 @@ public class BluetoothTelemetryService extends Service {
     public BluetoothTelemetryService() {
     }
 
+    // Class used for the client Binder.
+    public class LocalBinder extends Binder {
+        BluetoothTelemetryService getService() {
+            // Return this instance of MyService so clients can call public methods
+            return BluetoothTelemetryService.this;
+        }
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
-        throw new UnsupportedOperationException("Not yet implemented");
+        return binder;
+    }
+
+    public void setSampleReceiver(ISampleReceiver callbacks) {
+        sampleReceiver = callbacks;
     }
 
     @Override
@@ -73,7 +92,11 @@ public class BluetoothTelemetryService extends Service {
                     while(endOfLineIndex > 0) {
                         String data = recDataString.substring(0, endOfLineIndex);
 
-                        dataCollector.AppendSample(new SensorsSampleV1(data));
+                        SampleV1 sample = new SampleV1(data);
+                        dataCollector.AppendSample(new SampleV1(data));
+
+                        if (sampleReceiver != null)
+                            sampleReceiver.ReceiveV1Sample(sample);
 
                         recDataString.delete(0, endOfLineIndex + 2);
                         endOfLineIndex = recDataString.indexOf("\r\n");

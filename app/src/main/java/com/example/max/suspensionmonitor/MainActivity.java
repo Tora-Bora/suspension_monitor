@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Color;
@@ -17,6 +18,9 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.max.suspensionmonitor.Communications.ISampleReceiver;
+import com.example.max.suspensionmonitor.Domain.SampleJY;
+import com.example.max.suspensionmonitor.Domain.SampleV1;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
@@ -28,9 +32,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ISampleReceiver {
 
     final String LOG_TAG = "myLogs";
+
+    BluetoothTelemetryService myService;
+    boolean bound = false;
 
     Button btnOn, btnOff;
     TextView txtString;
@@ -127,47 +134,6 @@ public class MainActivity extends AppCompatActivity {
                         endOfLineIndex = recDataString.indexOf("\r\n");
                         count++;
                     }
-
-//                    String[] packet = readMessage.split(";");
-//                    if(packet.length == 2) {
-//                        try {
-//                            double xValue = Integer.parseInt(packet[0]);
-//                            if (xValue > graphLastXValue ) {
-//                                double fract = Double.parseDouble(packet[1]);
-//                                mSeries.appendData(new DataPoint(xValue, fract), true, 100);
-//                                graphLastXValue = xValue;
-//                            }
-//                            else {
-//                                Log.w(LOG_TAG, "Last xValue:" + graphLastXValue + " current: " + xValue + " Line:" + readMessage);
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            Log.e(LOG_TAG, "Read Line: " + readMessage + " exception:" + e.getMessage());
-//                        }
-//                    }
-//                    else {
-//                        Log.d(LOG_TAG, "Unexpected line: " + readMessage);
-//                    }
-
-
-
-//                    recDataString.append(readMessage);      								//keep appending to string until ~
-//                    int endOfLineIndex = recDataString.indexOf("~");                    // determine the end-of-line
-//                    if (endOfLineIndex > 0) {                                           // make sure there data before ~
-//                        String dataInPrint = recDataString.substring(0, endOfLineIndex);    // extract string
-//                        txtString.setText("Data Received = " + dataInPrint);
-//                        int dataLength = dataInPrint.length();							//get length of data received
-//                        txtStringLength.setText("String Length = " + String.valueOf(dataLength));
-//
-//                        if (recDataString.charAt(0) == '#')								//if it starts with # we know it is what we are looking for
-//                        {
-//                            graphLastXValue += 1d;
-//                            mSeries.appendData(new DataPoint(graphLastXValue, getRandom()), true, 40);
-//
-//                        }
-//                        recDataString.delete(0, recDataString.length()); 					//clear all string data
-//                        // strIncom =" ";
-//                        dataInPrint = " ";
-//                    }
                 }
             }
         };
@@ -185,6 +151,51 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    /** Callbacks for service binding, passed to bindService() */
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            // cast the IBinder and get MyService instance
+            BluetoothTelemetryService.LocalBinder binder = (BluetoothTelemetryService.LocalBinder) service;
+            myService = binder.getService();
+            bound = true;
+            myService.setSampleReceiver(MainActivity.this); // register
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            bound = false;
+        }
+    };
+
+    @Override
+    public void ReceiveV1Sample(SampleV1 sample) {
+
+        mSeries.appendData(new DataPoint(sample.mDTime / 10.0, sample.mPotentiometer), true, 400);
+        mSeriesAX.appendData(new DataPoint(sample.mDTime / 10.0, sample.mAccelX), true, 400);
+        mSeriesAY.appendData(new DataPoint(sample.mDTime / 10.0, sample.mAccelY), true, 400);
+        mSeriesAZ.appendData(new DataPoint(sample.mDTime / 10.0, sample.mAccelZ), true, 400);
+
+    }
+
+    @Override
+    public void ReceiveJYSample(SampleJY sample) {
+
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Unbind from service
+        if (bound) {
+            myService.setSampleReceiver(null); // unregister
+            unbindService(serviceConnection);
+            bound = false;
+        }
+    }
+
+
     @Override
     public void onResume() {
         super.onResume();
@@ -194,6 +205,12 @@ public class MainActivity extends AppCompatActivity {
 
         //Get the MAC address from the DeviceListActivty via EXTRA
         address = intent.getStringExtra(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+
+        Intent serviceIntent = new Intent(this, BluetoothTelemetryService.class);
+        serviceIntent.putExtra(DeviceListActivity.EXTRA_DEVICE_ADDRESS, address);
+
+        startService(serviceIntent);
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
 
         //create device and set the MAC address
         BluetoothDevice device = btAdapter.getRemoteDevice(address);

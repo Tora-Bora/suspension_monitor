@@ -4,7 +4,7 @@ package com.example.max.suspensionmonitor.Domain;
  * Created by Max on 13.02.2017.
  */
 
-public class SensorsSampleV1 {
+public class SampleV1 {
     public double mPotentiometer = 0;
 
     public double mAccelX = 0;
@@ -15,7 +15,7 @@ public class SensorsSampleV1 {
 
     public double mDTime = 0;
 
-    public SensorsSampleV1(String rawData){
+    public SampleV1(String rawData){
         this.Deserialize(rawData);
     }
 

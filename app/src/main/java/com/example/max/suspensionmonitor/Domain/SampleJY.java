@@ -4,7 +4,7 @@ package com.example.max.suspensionmonitor.Domain;
  * Created by Max on 15.02.2017.
  */
 
-public class SensorsSampleJY61 {
+public class SampleJY {
 
     public double mDTime = 0;
 
