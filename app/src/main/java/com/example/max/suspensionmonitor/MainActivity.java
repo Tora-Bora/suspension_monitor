@@ -26,6 +26,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
@@ -56,21 +60,19 @@ public class MainActivity extends AppCompatActivity {
     private LineGraphSeries<DataPoint> mSeriesAZ;
 
     private double graphLastXValue = 0d;
+    private double meanDz = 0d;
+    private int meanCount = 0;
+    boolean finished = false;
+
+
+    ArrayList<DataPoint> points = new ArrayList<DataPoint>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        GraphView graph = (GraphView) findViewById(R.id.graph);
-        mSeries = new LineGraphSeries<>();
-        graph.addSeries(mSeries);
-        graph.getViewport().setXAxisBoundsManual(true);
-        graph.getViewport().setMinX(0);
-        graph.getViewport().setMaxX(40);
-        graph.getViewport().setYAxisBoundsManual(true);
-        graph.getViewport().setMinY(0);
-        graph.getViewport().setMaxY(1);
 
 
         GraphView graphAcl = (GraphView) findViewById(R.id.graphacl);
@@ -80,94 +82,42 @@ public class MainActivity extends AppCompatActivity {
         mSeriesAY.setColor(Color.RED);
         mSeriesAZ = new LineGraphSeries<>();
         mSeriesAZ.setColor(Color.YELLOW);
-        graphAcl.addSeries(mSeriesAX);
-        graphAcl.addSeries(mSeriesAY);
-        graphAcl.addSeries(mSeriesAZ);
+        //graphAcl.addSeries(mSeriesAX);
+        //graphAcl.addSeries(mSeriesAY);
+        //graphAcl.addSeries(mSeriesAZ);
         graphAcl.getViewport().setXAxisBoundsManual(true);
         graphAcl.getViewport().setMinX(0);
-        graphAcl.getViewport().setMaxX(40);
+        graphAcl.getViewport().setMaxX(5);
         graphAcl.getViewport().setYAxisBoundsManual(true);
-        graphAcl.getViewport().setMinY(-30);
-        graphAcl.getViewport().setMaxY(30);
+        graphAcl.getViewport().setMinY(-15);
+        graphAcl.getViewport().setMaxY(15);
+        graphAcl.getViewport().setScalable(true);
+        //graphAcl.getViewport().setScalableY(true);
+        graphAcl.getViewport().setScrollable(true);
+        //graphAcl.getViewport().setScrollableY(true);
+        //GraphView graphAcl = (GraphView) findViewById(R.id.graphacl);
+        graphAcl.addSeries(mSeriesAZ);
+
+
 
 
 
         bluetoothIn = new Handler() {
             public void handleMessage(android.os.Message msg) {
                 if (msg.what == handlerState) {										//if message is what we want
-                    String readMessage = (String) msg.obj;                                                                // msg.arg1 = bytes from connect thread
+                    Sample sample = (Sample) msg.obj;                                                                // msg.arg1 = bytes from connect thread
 
-                    recDataString.append(readMessage);      								//keep appending to string until ~
-                    int endOfLineIndex = recDataString.indexOf("\r\n");                    // determine the end-of-line
 
-                    int count = 0;
-                    while(endOfLineIndex > 0){
-                        String data = recDataString.substring(0, endOfLineIndex);
+                    //Log.d(LOG_TAG, "Sample: " + sample.toString());
+                    if ( (sample.dt - graphLastXValue) >= 0.001) {
 
-                        String[] packet = data.split(";");
-                        if(packet.length >= 5) {
-                            double xValue = Integer.parseInt(packet[0]);
-                            double pot = Double.parseDouble(packet[1]);
-                            mSeries.appendData(new DataPoint(xValue / 10.0, pot), true, 400);
-
-                            double ax = Double.parseDouble(packet[2]);
-                            mSeriesAX.appendData(new DataPoint(xValue / 10.0, ax), true, 400);
-
-                            double ay = Double.parseDouble(packet[3]);
-                            mSeriesAY.appendData(new DataPoint(xValue / 10.0, ay), true, 400);
-
-                            double az = Double.parseDouble(packet[4]);
-                            mSeriesAZ.appendData(new DataPoint(xValue / 10.0, az), true, 400);
-                        }
-                        else {
-                            Log.d(LOG_TAG, "Unexpected line: " + data);
-                        }
-
-                        recDataString.delete(0, endOfLineIndex + 2);
-                        endOfLineIndex = recDataString.indexOf("\r\n");
-                        count++;
+                        points.add(new DataPoint(sample.dt, sample.az));
+                        mSeriesAZ.appendData(new DataPoint(sample.dt, sample.az), false, 5000);
+                        graphLastXValue = sample.dt;
+                        meanCount++;
                     }
 
-//                    String[] packet = readMessage.split(";");
-//                    if(packet.length == 2) {
-//                        try {
-//                            double xValue = Integer.parseInt(packet[0]);
-//                            if (xValue > graphLastXValue ) {
-//                                double fract = Double.parseDouble(packet[1]);
-//                                mSeries.appendData(new DataPoint(xValue, fract), true, 100);
-//                                graphLastXValue = xValue;
-//                            }
-//                            else {
-//                                Log.w(LOG_TAG, "Last xValue:" + graphLastXValue + " current: " + xValue + " Line:" + readMessage);
-//                            }
-//                        } catch (NumberFormatException e) {
-//                            Log.e(LOG_TAG, "Read Line: " + readMessage + " exception:" + e.getMessage());
-//                        }
-//                    }
-//                    else {
-//                        Log.d(LOG_TAG, "Unexpected line: " + readMessage);
-//                    }
 
-
-
-//                    recDataString.append(readMessage);      								//keep appending to string until ~
-//                    int endOfLineIndex = recDataString.indexOf("~");                    // determine the end-of-line
-//                    if (endOfLineIndex > 0) {                                           // make sure there data before ~
-//                        String dataInPrint = recDataString.substring(0, endOfLineIndex);    // extract string
-//                        txtString.setText("Data Received = " + dataInPrint);
-//                        int dataLength = dataInPrint.length();							//get length of data received
-//                        txtStringLength.setText("String Length = " + String.valueOf(dataLength));
-//
-//                        if (recDataString.charAt(0) == '#')								//if it starts with # we know it is what we are looking for
-//                        {
-//                            graphLastXValue += 1d;
-//                            mSeries.appendData(new DataPoint(graphLastXValue, getRandom()), true, 40);
-//
-//                        }
-//                        recDataString.delete(0, recDataString.length()); 					//clear all string data
-//                        // strIncom =" ";
-//                        dataInPrint = " ";
-//                    }
                 }
             }
         };
@@ -251,10 +201,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     //create new class for connect thread
     private class ConnectedThread extends Thread {
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+
+        private JYBufferReader bufferReader = new JYBufferReader();
 
         //creation of the connect thread
         public ConnectedThread(BluetoothSocket socket) {
@@ -277,30 +230,17 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+
         public void run() {
-            byte[] buffer = new byte[1024];
-            int bytes;
 
             // Keep looping to listen for received messages
             while (true) {
-                try {
-
-//                    BufferedReader in = new BufferedReader(new InputStreamReader(mmInStream));
-//                    String line = in.readLine();
-//                    if (line != null) {
-//                        bluetoothIn.obtainMessage(handlerState, line.length(), -1, line).sendToTarget();
-//                    }
-
-
-                    bytes = mmInStream.read(buffer);        	//read bytes from input buffer
-                    String readMessage = new String(buffer, 0, bytes);
+                Sample sample = bufferReader.ReadSample(mmInStream);
+                if (sample != null) {
                     // Send the obtained bytes to the UI Activity via handler
-                    bluetoothIn.obtainMessage(handlerState, bytes, -1, readMessage).sendToTarget();
-
-                } catch (IOException e) {
-                    Log.e(LOG_TAG, "Input stream was disconnected", e);
-                    break;
+                    bluetoothIn.obtainMessage(handlerState, 0, -1, sample).sendToTarget();
                 }
+                //String readMessage = new String(buffer, 0, bytes);
             }
         }
         //write method
