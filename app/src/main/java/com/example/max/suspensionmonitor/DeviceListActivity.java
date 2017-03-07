@@ -25,7 +25,7 @@ public class DeviceListActivity extends AppCompatActivity {
 
     TextView textView1;
 
-    // EXTRA string to send on to MainActivity
+    // EXTRA string to send on to MonitoringActivity
     public static String EXTRA_DEVICE_ADDRESS = "device_address";
 
     // Member fields
@@ -84,7 +84,7 @@ public class DeviceListActivity extends AppCompatActivity {
             String address = info.substring(info.length() - 17);
 
             // Make an intent to start next activity while taking an extra which is the MAC address.
-            Intent i = new Intent(DeviceListActivity.this, MainActivity.class);
+            Intent i = new Intent(DeviceListActivity.this, MonitoringActivity.class);
             i.putExtra(EXTRA_DEVICE_ADDRESS, address);
             startActivity(i);
         }
