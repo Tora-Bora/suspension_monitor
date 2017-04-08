@@ -80,6 +80,7 @@ public class BluetoothThread extends Thread {
         this.closeSocket();
     }
 
+
     public void read()
     {
         // Keep looping to listen for received messages

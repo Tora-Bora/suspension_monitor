@@ -18,8 +18,6 @@ public class V1SampleReader implements ISampleReader {
     private StringBuilder recDataString = new StringBuilder();
     private byte[] buffer = new byte[256];
     private int bytes;
-    private double lastTime = -1;
-    private double lastX = -1;
 
     public Sample ReadSample(InputStream inStream) throws IOException {
         SampleV1 sample = null;
@@ -40,23 +38,12 @@ public class V1SampleReader implements ISampleReader {
             try {
                 sample = new SampleV1(data);
             }
-            catch (ArrayIndexOutOfBoundsException ex) {
+            catch (Exception ex) {
+                Log.d("V1SampleReader", String.format("ex:%s, parsing line:%s", ex.getMessage(), data));
             }
             recDataString.delete(0, endOfLineIndex + 2);
         }
 
-        if (sample != null) {
-            if (lastTime != -1) {
-                sample.mDt = (sample.mTime - lastTime);
-                sample.mV = (sample.mPotentiometer - lastX) / sample.mDt;
-            } else {
-                sample.mDt = 0;
-                sample.mV = 0;
-            }
-
-            lastTime = sample.mTime;
-            lastX = sample.mPotentiometer;
-        }
 
         return sample;
     }

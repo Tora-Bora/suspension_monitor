@@ -4,6 +4,7 @@ import android.view.Surface;
 
 import com.example.max.suspensionmonitor.Domain.SampleV1;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,8 +13,8 @@ import java.util.List;
  * Created by Max on 15.02.2017.
  */
 
-public class SpeedHistogramData {
-    public class VInterval {
+public class SpeedHistogramData implements Serializable{
+    public class VInterval implements Serializable {
         public double mTo;
         public double mTotalTime;
     }
@@ -21,6 +22,10 @@ public class SpeedHistogramData {
     private ArrayList<VInterval> mHistogramArray;
     private final int mPositiveCapacity;
     private final int mSpeedInterval;
+
+    public int GetSpeedInterval() {
+        return mSpeedInterval;
+    }
 
     public List<VInterval> GetHistogram() {
         return mHistogramArray;
@@ -71,7 +76,31 @@ public class SpeedHistogramData {
         int positiveIndex = (int)Math.ceil(Math.abs(speedmm / mSpeedInterval));
         positiveIndex = Math.min(mPositiveCapacity, positiveIndex);
         int signedIndex = (int)(positiveIndex * Math.signum(speedmm));
-        GetInterval(signedIndex).mTotalTime += sample.mDt;
+        GetInterval(signedIndex).mTotalTime += sample.mTime;
+    }
+
+    public void Normalize() {
+        double maxval = 0;
+        for (VInterval iv: mHistogramArray) {
+            maxval = Math.max(maxval, iv.mTotalTime);
+        }
+
+        if (maxval > 0.1) {
+            double multipler = 100 / maxval;
+
+            for (VInterval iv: mHistogramArray) {
+                iv.mTotalTime *= multipler;
+            }
+
+        }
+    }
+
+    public double GetMinValue() {
+        return mHistogramArray.get(0).mTo;
+    }
+
+    public double GetMaxValue() {
+        return mHistogramArray.get(mHistogramArray.size() - 1).mTo;
     }
 
     @Override

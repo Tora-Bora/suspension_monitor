@@ -17,16 +17,14 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.max.suspensionmonitor.Communications.ISampleReceiver;
-import com.example.max.suspensionmonitor.Concrete.SpeedHistogramData;
-import com.example.max.suspensionmonitor.Domain.SampleJY;
+import com.example.max.suspensionmonitor.Concrete.IV1SampleReceiver;
 import com.example.max.suspensionmonitor.Domain.SampleV1;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.BarGraphSeries;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
-public class MonitoringActivity extends AppCompatActivity implements ISampleReceiver {
+public class MonitoringActivity extends AppCompatActivity implements IV1SampleReceiver {
 
     final String LOG_TAG = "myLogs";
 
@@ -41,8 +39,6 @@ public class MonitoringActivity extends AppCompatActivity implements ISampleRece
     private BluetoothAdapter btAdapter = null;
     private BluetoothSocket btSocket = null;
     private StringBuilder recDataString = new StringBuilder();
-
-    private SpeedHistogramData mHistogramData;
 
 
     // String for MAC address
@@ -65,7 +61,6 @@ public class MonitoringActivity extends AppCompatActivity implements ISampleRece
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_monitor);
 
-        mHistogramData = new SpeedHistogramData(1, 6);
         GraphView graph = (GraphView) findViewById(R.id.graph);
         graph.getViewport().setMinX(-6);
         graph.getViewport().setMaxX(6);
@@ -75,7 +70,6 @@ public class MonitoringActivity extends AppCompatActivity implements ISampleRece
         graph.getViewport().setYAxisBoundsManual(true);
 
         mSeries = new BarGraphSeries<>();
-        UpdateSpeedHistogram();
         graph.addSeries(mSeries);
 
         GraphView graphAcl = (GraphView) findViewById(R.id.graphacl);
@@ -126,7 +120,7 @@ public class MonitoringActivity extends AppCompatActivity implements ISampleRece
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             myService = binder.getService();
             bound = true;
-            myService.setSampleReceiver(MonitoringActivity.this); // register
+            //myService.setSampleReceiver(MonitoringActivity.this); // register
         }
 
         @Override
@@ -138,60 +132,9 @@ public class MonitoringActivity extends AppCompatActivity implements ISampleRece
     @Override
     public void ReceiveV1Sample(SampleV1 sample) {
 
-        mHistogramData.AddV1Sample(sample);
-        UpdateSpeedHistogram();
-
         if ( (sample.mTime - mSeriesAZ.getHighestValueX()) > 0.001) {
-            mSeriesAZ.appendData(new DataPoint(sample.mTime, sample.mV), true, 5000);
+            mSeriesAZ.appendData(new DataPoint(sample.mTime, sample.mPos), true, 5000);
         }
-
-//        mSeries.appendData(new DataPoint(sample.mTime / 10.0, sample.mPotentiometer), true, 400);
-//        mSeriesAX.appendData(new DataPoint(sample.mTime / 10.0, sample.mAccelX), true, 400);
-//        mSeriesAY.appendData(new DataPoint(sample.mTime / 10.0, sample.mAccelY), true, 400);
-//        mSeriesAZ.appendData(new DataPoint(sample.mTime / 10.0, sample.mAccelZ), true, 400);
-
-    }
-
-    @Override
-    public void ReceiveJYSampleA1(SampleJY sample) {
-
-        if ( (sample.mDTime - mSeriesAZ.getHighestValueX()) > 0.001)
-        {
-            mHistogramData.AddSpeedSample(sample.mVZ * 2, sample.mDTime - mSeriesAZ.getHighestValueX());
-            UpdateSpeedHistogram();
-
-            mSeriesAZ.appendData(new DataPoint(sample.mDTime , sample.mAccel.z - 9.81), true, 5000);
-            mSeriesAX.appendData(new DataPoint(sample.mDTime , sample.mVZ * 5), true, 5000);
-        }
-    }
-
-    public void ReceiveJYSampleA2(SampleJY sample) {
-
-    }
-
-    public void UpdateSpeedHistogram()
-    {
-        DataPoint[] histPoints = new DataPoint[mHistogramData.GetHistogram().size()];
-        double timeMax = 0;
-
-        for(int i = 0; i < mHistogramData.GetHistogram().size(); i++)
-        {
-            SpeedHistogramData.VInterval interval = mHistogramData.GetHistogram().get(i);
-            timeMax = Math.max(interval.mTotalTime, timeMax);
-        }
-
-        for(int i = 0; i < mHistogramData.GetHistogram().size(); i++)
-        {
-            SpeedHistogramData.VInterval interval = mHistogramData.GetHistogram().get(i);
-            double normalizedYValue = interval.mTotalTime;
-            if (timeMax >= 10) {
-                normalizedYValue = normalizedYValue / timeMax;
-                normalizedYValue = normalizedYValue * 10;
-            }
-            histPoints[i] = new DataPoint(interval.mTo, normalizedYValue);
-        }
-        mSeries.resetData(histPoints);
-
     }
 
     public void buttonStopClick(View v){

@@ -2,6 +2,7 @@ package com.example.max.suspensionmonitor;
 
 import com.example.max.suspensionmonitor.Concrete.JYSampleReader;
 import com.example.max.suspensionmonitor.Concrete.SpeedHistogramData;
+import com.example.max.suspensionmonitor.Concrete.V1SampleAnalizer;
 import com.example.max.suspensionmonitor.Concrete.V1SampleReader;
 import com.example.max.suspensionmonitor.Domain.SampleJY;
 import com.example.max.suspensionmonitor.Domain.SampleV1;
@@ -76,8 +77,8 @@ public class ExampleUnitTest {
         V1SampleReader sampleReader = new V1SampleReader();
 
         String prea = ".30;9.85\r\n";
-        String a = "1.0;1;2;3;4\r\n1.01;5;";
-        String b = "6;7;8\r\n1.02;9;10;11;12\r\n1.03;13";
+        String a = "1.0;1;2\r\n1.01;5;";
+        String b = "6\r\n1.02;9;10\r\n1.03;13";
 
         ByteArrayInputStream bis = new ByteArrayInputStream(prea.getBytes());
         SampleV1 sample1 = (SampleV1)sampleReader.ReadSample(bis);
@@ -106,7 +107,6 @@ public class ExampleUnitTest {
 
         SampleV1 sample = new SampleV1();
         sample.mV = -9;
-        sample.mDt = 1;
         shd.AddV1Sample(sample);
         sample.mV = 5;
         shd.AddV1Sample(sample);
@@ -118,4 +118,42 @@ public class ExampleUnitTest {
         assertEquals(0.0, shd.GetInterval(2).mTotalTime, 0.001);
         assertEquals(1.0, shd.GetInterval(-2).mTotalTime, 0.001);
     }
+
+    @Test
+    public void V1AnalizerTest() {
+        V1SampleAnalizer analizer = new V1SampleAnalizer();
+
+        //Calibration
+        for(long i = 0; i < 101; i++)
+        {
+            SampleV1 s = new SampleV1();
+            s.mV = 0;
+            s.mPos = 200;
+            s.mTime = (double)i;
+            analizer.ReceiveV1Sample(s);
+        }
+
+
+        for(long j = 0; j < 15; j++) {
+            SampleV1 s = new SampleV1();
+            s.mV = 0;
+            s.mPos = 160;
+            s.mTime = (double)(101 + j);
+            analizer.ReceiveV1Sample(s);
+        }
+
+        assertEquals(25.0, analizer.GetAnalisis().sag, 1);
+
+
+        SampleV1 s = new SampleV1();
+        s.mV = 0;
+        s.mPos = 40;
+        s.mTime = 0.0;
+
+        analizer.ReceiveV1Sample(s);
+
+
+        assertEquals(1, analizer.GetAnalisis().bottomingIncidents);
+    }
+
 }
