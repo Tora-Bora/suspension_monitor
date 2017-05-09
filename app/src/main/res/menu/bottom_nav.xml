@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/action_monitor"
+        android:title="@string/menu_monitor"
+        android:icon="@drawable/ic_monitor" />
+    <item android:id="@+id/action_measurements"
+        android:title="@string/menu_measurements"
+        android:icon="@drawable/ic_measurements" />
+    <item android:id="@+id/action_settings"
+        android:title="@string/menu_settings"
+        android:icon="@drawable/ic_settings" />
+</menu>

@@ -19,6 +19,8 @@ import android.widget.Toast;
 
 import com.example.max.suspensionmonitor.Concrete.IV1SampleReceiver;
 import com.example.max.suspensionmonitor.Domain.SampleV1;
+import com.example.max.suspensionmonitor.Services.BluetoothService;
+import com.example.max.suspensionmonitor.Services.WorkerService;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.BarGraphSeries;
 import com.jjoe64.graphview.series.DataPoint;
@@ -28,7 +30,7 @@ public class MonitoringActivity extends AppCompatActivity implements IV1SampleRe
 
     final String LOG_TAG = "myLogs";
 
-    BluetoothService myService;
+    WorkerService myService;
     boolean bound = false;
 
     Button btnOn, btnOff;
@@ -117,7 +119,7 @@ public class MonitoringActivity extends AppCompatActivity implements IV1SampleRe
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             // cast the IBinder and get MyService instance
-            BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
+            WorkerService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             myService = binder.getService();
             bound = true;
             //myService.setSampleReceiver(MonitoringActivity.this); // register

@@ -79,5 +79,17 @@
     <string name="none_paired">No devices have been paired</string>
     <string name="connecting">Connecting...</string>
     <string name="title_activity_main">MainActivity</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_measurements">Measurements</string>
+    <string name="menu_monitor">Monitor</string>
+    <string name="session_name">Session name</string>
+    <string name="session_name_hint">Session name</string>
+    <string name="session_save_btn">Save</string>
+    <string name="session_hrebound">High speed rebound</string>
+    <string name="session_lrebound">Low speed rebound</string>
+    <string name="session_hcompress">High speed compression</string>
+    <string name="session_lcompress">Low speed rebound</string>
+    <string name="session_pressure">Pressure/preload</string>
+    <string name="session_shock_fork">Shock/Fork name</string>
 
 </resources>

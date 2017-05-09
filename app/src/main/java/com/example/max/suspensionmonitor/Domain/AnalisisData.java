@@ -20,6 +20,7 @@ public class AnalisisData implements Serializable {
     public Date startDate = new Date(System.currentTimeMillis());
     public Date stopDate = null;
     public long bottomingIncidents = 0;
+    public long packingIncidents = 0;
     public double dynamicSag = 0;
     public double sag = 0;
     public SpeedHistogramData histogramData = null;

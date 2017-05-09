@@ -23,6 +23,9 @@ public class V1SampleAnalizer implements IV1SampleReceiver {
     private final long mCalibrateSamples = 100;
     private final double mBottomOutDiv = 5.0;
 
+    private double mExtrem = 0;
+    private long packing = 0;
+
     private boolean mCalibrated = false;
     private long mCalibrateCounter = 0;
     private double mFloor = 0.0;
@@ -61,6 +64,26 @@ public class V1SampleAnalizer implements IV1SampleReceiver {
                     mAnalisis.bottomingIncidents += 1;
                     mLastBottomingIncident = System.currentTimeMillis();
                 }
+
+                if (Math.signum(mPrevSample.mV) != Math.signum(sample.mV)) {
+                    // derivative changed sign
+                    double dynamicSag = realPos + (mExtrem - realPos) / 2.0;
+                    dynamicSag = dynamicSag * 100.0 / mLength;
+
+                    if (dynamicSag > (mAnalisis.dynamicSag + 0.5)) {
+                        packing += 1;
+                    }
+                    else {
+                        packing = 0;
+                    }
+
+                    if (packing > 3) {
+                        mAnalisis.packingIncidents += 1;
+                    }
+
+                    mAnalisis.dynamicSag = dynamicSag;
+                }
+
             }
             finally {
                 mAnalisisLock.unlock();
@@ -90,7 +113,7 @@ public class V1SampleAnalizer implements IV1SampleReceiver {
     }
 
     public double ConvertPos(double pos) {
-        return pos - mFloor;
+        return mFloor - pos;
     }
 
     private void UpdateSag() {

@@ -20,7 +20,7 @@
 
         <com.jjoe64.graphview.GraphView
             android:layout_width="match_parent"
-            android:layout_height="300dip"
+            android:layout_height="270dip"
             android:id="@+id/graph"
             android:layout_alignParentTop="true"
             android:layout_alignParentStart="true"
@@ -36,25 +36,17 @@
                     android:text="Duration:"
                     android:padding="3dip" />
                 <TextView
+                    android:id="@+id/duration"
                     android:text="0 sec"
                     android:gravity="right"
                     android:padding="3dip" />
             </TableRow>
             <TableRow>
                 <TextView
-                    android:text="Sag:"
-                    android:padding="3dip" />
-                <TextView
-                    android:text="0%"
-                    android:gravity="right"
-                    android:padding="3dip" />
-            </TableRow>
-
-            <TableRow>
-                <TextView
                     android:text="Dynamic sag:"
                     android:padding="3dip" />
                 <TextView
+                    android:id="@+id/dsag"
                     android:text="0%"
                     android:gravity="right"
                     android:padding="3dip" />
@@ -65,6 +57,18 @@
                     android:text="Bottoming out:"
                     android:padding="3dip" />
                 <TextView
+                    android:id="@+id/bottoming"
+                    android:text="0"
+                    android:gravity="right"
+                    android:padding="3dip" />
+            </TableRow>
+
+            <TableRow>
+                <TextView
+                    android:text="Packing:"
+                    android:padding="3dip" />
+                <TextView
+                    android:id="@+id/packing"
                     android:text="0"
                     android:gravity="right"
                     android:padding="3dip" />
@@ -82,5 +86,15 @@
             />
 
     </LinearLayout>
+
+    <android.support.design.widget.BottomNavigationView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/navigation"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="start"
+        android:layout_alignParentBottom="true"
+        app:menu="@menu/bottom_nav" />
 
 </RelativeLayout>

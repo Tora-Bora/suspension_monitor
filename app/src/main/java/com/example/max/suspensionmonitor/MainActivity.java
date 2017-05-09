@@ -10,16 +10,19 @@ import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.max.suspensionmonitor.Concrete.ISampleReceiver;
-import com.example.max.suspensionmonitor.Concrete.IV1SampleReceiver;
-import com.example.max.suspensionmonitor.Concrete.SpeedHistogramData;
 import com.example.max.suspensionmonitor.Domain.AnalisisData;
-import com.example.max.suspensionmonitor.Domain.SampleV1;
+import com.example.max.suspensionmonitor.Services.BluetoothService;
+import com.example.max.suspensionmonitor.Services.EmulatorService;
+import com.example.max.suspensionmonitor.Services.WorkerService;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
@@ -34,13 +37,30 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
     private LineGraphSeries<DataPoint> mSeriesVel;
     //private GraphView mGraph;
 
-    BluetoothService monitoringService;
+    WorkerService monitoringService;
     boolean bound = false;
 
     private Intent serviceIntent = null;
     private BluetoothAdapter btAdapter = null;
     // String for MAC address
     private static String address;
+
+    private void ShowSessionListActivity() {
+        Intent intent = new Intent(this, SessionListActivity.class);
+        startActivity(intent);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_measurements:
+                ShowSessionListActivity();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,12 +96,20 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
         //Get the MAC address from the DeviceListActivty via EXTRA
         address = intent.getStringExtra(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
 
-        serviceIntent = new Intent(this, BluetoothService.class);
+        if (address.startsWith("emulator")) {
+            serviceIntent = new Intent(this, EmulatorService.class);
+        } else {
+            serviceIntent = new Intent(this, BluetoothService.class);
+        }
+
         serviceIntent.putExtra(DeviceListActivity.EXTRA_DEVICE_ADDRESS, address);
         //startService(serviceIntent);
         bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
         bound = true;
+
+
     }
+
 
     public void actualiszeToggleButtonText() {
 
@@ -127,7 +155,7 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             // cast the IBinder and get MyService instance
-            BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
+            WorkerService.LocalBinder binder = (WorkerService.LocalBinder) service;
             monitoringService = binder.getService();
             actualiszeToggleButtonText();
             bound = true;
@@ -149,8 +177,8 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
             TextView sagView = (TextView) findViewById(R.id.sag);
             sagView.setText(String.format("%.2f%%", sag));
 
-            TextView posView = (TextView) findViewById(R.id.pos);
-            posView.setText(String.format("%.2f", position));
+            TextView dsagView = (TextView) findViewById(R.id.dsag);
+            sagView.setText(String.format("%.2f%%", dynamicSag));
         }
     }
 

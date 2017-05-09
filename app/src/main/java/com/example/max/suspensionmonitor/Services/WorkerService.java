@@ -1,4 +1,5 @@
-package com.example.max.suspensionmonitor;
+package com.example.max.suspensionmonitor.Services;
+
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -14,42 +15,40 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.example.max.suspensionmonitor.Communications.BluetoothThread;
-import com.example.max.suspensionmonitor.Concrete.ISampleReceiver;
 import com.example.max.suspensionmonitor.Concrete.ISampleReader;
+import com.example.max.suspensionmonitor.Concrete.ISampleReceiver;
 import com.example.max.suspensionmonitor.Concrete.V1SampleAnalizer;
 import com.example.max.suspensionmonitor.Concrete.V1SampleReader;
+import com.example.max.suspensionmonitor.Constants;
+import com.example.max.suspensionmonitor.DeviceListActivity;
 import com.example.max.suspensionmonitor.Domain.AnalisisData;
 import com.example.max.suspensionmonitor.Domain.SampleV1;
+import com.example.max.suspensionmonitor.MainActivity;
+import com.example.max.suspensionmonitor.R;
 
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.UUID;
 
-import static com.example.max.suspensionmonitor.AnalysisActivity.EXTRA_ANALISIS_DATA;
+public class WorkerService extends Service {
+    public WorkerService() {
+    }
 
-public class BluetoothService extends Service {
     public static boolean IS_SERVICE_RUNNING = false;
     // Binder given to clients
-    private final IBinder binder = new LocalBinder();
+    protected final IBinder binder = new WorkerService.LocalBinder();
     // Registered callbacks
-    private ISampleReceiver sampleReceiver;
+    protected ISampleReceiver sampleReceiver;
 
-    private V1SampleAnalizer sampleAnalizer = new V1SampleAnalizer();
-    private boolean analisisStarted = false;
+    protected V1SampleAnalizer sampleAnalizer = new V1SampleAnalizer();
+    protected boolean analisisStarted = false;
 
-    private static final String TAG = "myLogs";
-    private BluetoothAdapter btAdapter = null;
+    protected static final String TAG = "myLogs";
 
-    private boolean isConnected = false;
+    protected boolean isConnected = false;
 
 
-    // SPP UUID service - this should work for most devices
-    private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    LinkedList<BluetoothThread> mBluetoothThreads = new LinkedList<BluetoothThread>();
-
-    public BluetoothService() {
-    }
 
     public void ToggleAnalizing() {
         if (IsAnalisisStarted()) {
@@ -85,9 +84,9 @@ public class BluetoothService extends Service {
 
     // Class used for the client Binder.
     public class LocalBinder extends Binder {
-        BluetoothService getService() {
+        public WorkerService getService() {
             // Return this instance of MyService so clients can call public methods
-            return BluetoothService.this;
+            return WorkerService.this;
         }
     }
 
@@ -116,26 +115,8 @@ public class BluetoothService extends Service {
         Log.d(TAG, "SERVICE CREATED");
     }
 
-    private void Connect(String address) {
-        Handler v1Sample1Handler = new Handler() {
-            public void handleMessage(android.os.Message msg) {
-                //TODO: Write data to collector
+    protected void Connect(String address) {
 
-                SampleV1 sample = (SampleV1) msg.obj;
-                sampleAnalizer.ReceiveV1Sample(sample);
-
-
-                if (sampleReceiver != null) {
-                    //sampleReceiver.ReceiveV1Sample((SampleV1) msg.obj);
-                    AnalisisData andata = sampleAnalizer.GetAnalisis();
-                    sampleReceiver.ReceiveSample(sampleAnalizer.ConvertPos(sample.mPos), sample.mV, andata.sag, andata.dynamicSag, sample.mTime);
-                }
-
-            }
-        };
-
-        btAdapter = BluetoothAdapter.getDefaultAdapter();       // get Bluetooth adapter
-        StartThread(new V1SampleReader(), v1Sample1Handler, address);
     }
 
     @Override
@@ -143,61 +124,19 @@ public class BluetoothService extends Service {
         Log.d(TAG, "SERVICE STARTED");
 
 
-        String address = intent.getStringExtra(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+        if (!isConnected) {
+            String address = intent.getStringExtra(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+            Connect(address);
+            isConnected = true;
+        }
 
-        Handler v1Sample1Handler = new Handler() {
-            public void handleMessage(android.os.Message msg) {
-                //TODO: Write data to collector
-
-                SampleV1 sample = (SampleV1) msg.obj;
-                sampleAnalizer.ReceiveV1Sample(sample);
-
-
-                if (sampleReceiver != null) {
-                    //sampleReceiver.ReceiveV1Sample((SampleV1) msg.obj);
-                    AnalisisData andata = sampleAnalizer.GetAnalisis();
-                    sampleReceiver.ReceiveSample(sample.mPos, sample.mV, andata.sag, andata.dynamicSag, sample.mTime);
-                }
-
-            }
-        };
-
-        btAdapter = BluetoothAdapter.getDefaultAdapter();       // get Bluetooth adapter
-
-        StartThread(new V1SampleReader(), v1Sample1Handler, address);
         showNotification();
 
         return START_STICKY;
         //return super.onStartCommand(intent, flags, startId);
     }
 
-    private void StartThread(ISampleReader reader, Handler handler, String address)
-    {
-        BluetoothThread bt = new BluetoothThread(this.ConnectRemoteDevice(address), reader, handler);
-        bt.start();
-        mBluetoothThreads.add(bt);
-    }
 
-    public void StopAllThreads()
-    {
-        for (BluetoothThread thread : mBluetoothThreads)
-        {
-            if (thread.isAlive())
-                thread.interrupt();
-        }
-        mBluetoothThreads.clear();
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        StopAllThreads();
-        Log.d(TAG, "SERVICE DESTROYED");
-    }
-
-    private BluetoothDevice ConnectRemoteDevice(String address) {
-        return btAdapter.getRemoteDevice(address);
-    }
 
     private void showNotification() {
         Intent notificationIntent = new Intent(this, MainActivity.class);
@@ -225,5 +164,4 @@ public class BluetoothService extends Service {
                 notification);
 
     }
-
 }

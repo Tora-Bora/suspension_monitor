@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.TextView;
 
 import com.example.max.suspensionmonitor.Concrete.SpeedHistogramData;
 import com.example.max.suspensionmonitor.Domain.AnalisisData;
@@ -23,22 +24,24 @@ public class AnalysisActivity extends AppCompatActivity {
 
     private BarGraphSeries<DataPoint> mSeries;
 
+    private AnalisisData mAnalisisData;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_analysis);
 
         Intent intent = getIntent();
-        AnalisisData data = (AnalisisData)intent.getSerializableExtra(EXTRA_ANALISIS_DATA);
-        //AnalisisData data = new AnalisisDataMock();
+        mAnalisisData = (AnalisisData)intent.getSerializableExtra(EXTRA_ANALISIS_DATA);
 
-        double spdinerval = (double)data.histogramData.GetSpeedInterval();
+        double spdinerval = (double) mAnalisisData.histogramData.GetSpeedInterval();
 
-        DataPoint points[] = new DataPoint[data.histogramData.GetHistogram().size()];
+        DataPoint points[] = new DataPoint[mAnalisisData.histogramData.GetHistogram().size()];
         int i = 0;
         double min = 0;
         double max = 0;
-        for (SpeedHistogramData.VInterval interval : data.histogramData.GetHistogram()) {
+        for (SpeedHistogramData.VInterval interval : mAnalisisData.histogramData.GetHistogram()) {
             double x = interval.mTo / spdinerval;
             max = Math.max(max, x);
             min = Math.min(min, x);
@@ -68,9 +71,26 @@ public class AnalysisActivity extends AppCompatActivity {
         graph.getViewport().setMaxY(100);
         graph.getViewport().setXAxisBoundsManual(true);
         graph.getViewport().setYAxisBoundsManual(true);
+
+
+        TextView sagView = (TextView) findViewById(R.id.dsag);
+        sagView.setText(String.format("%.2f%%", mAnalisisData.dynamicSag));
+
+        TextView durationView = (TextView) findViewById(R.id.duration);
+        sagView.setText(String.format("%d sec", (int)(mAnalisisData.stopDate.getTime() - mAnalisisData.startDate.getTime() / 1000)));
+
+        TextView botView = (TextView) findViewById(R.id.bottoming);
+        sagView.setText(String.format("%d", mAnalisisData.bottomingIncidents));
+
+        TextView packView = (TextView) findViewById(R.id.packing);
+        sagView.setText(String.format("%d", mAnalisisData.packingIncidents));
     }
 
     public void buttonSaveClick(View view) {
 
+        Intent intent = new Intent(this, SaveSessionActivity.class);
+        intent.setAction(Intent.ACTION_VIEW);
+        intent.putExtra(EXTRA_ANALISIS_DATA, mAnalisisData);
+        startActivity(intent);
     }
 }

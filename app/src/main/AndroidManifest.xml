@@ -23,7 +23,7 @@
         </activity>
 
         <service
-            android:name=".BluetoothService"
+            android:name=".Services.BluetoothService"
             android:enabled="true"
             android:exported="true" />
 
@@ -31,9 +31,18 @@
         <activity
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings" />
-        <activity android:name=".AnalysisActivity">
+        <activity android:name=".AnalysisActivity" />
+        <activity android:name=".SaveSessionActivity" />
+        <activity android:name=".SessionListActivity" />
 
-        </activity>
+        <service
+            android:name=".Services.EmulatorService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".Services.WorkerService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>

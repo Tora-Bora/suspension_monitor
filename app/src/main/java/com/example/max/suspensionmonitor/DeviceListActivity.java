@@ -4,6 +4,7 @@ import java.util.Set;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -38,9 +39,25 @@ public class DeviceListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_device_list);
     }
 
+    public static boolean isEmulator() {
+        return Build.FINGERPRINT.startsWith("generic")
+                || Build.FINGERPRINT.startsWith("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK built for x86")
+                || Build.MANUFACTURER.contains("Genymotion")
+                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                || "google_sdk".equals(Build.PRODUCT);
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+
+        if(isEmulator()) {
+            StartMainActivity("emulator");
+            return;
+        }
 
         checkBTState();
 
@@ -83,12 +100,16 @@ public class DeviceListActivity extends AppCompatActivity {
             String info = ((TextView) v).getText().toString();
             String address = info.substring(info.length() - 17);
 
-            // Make an intent to start next activity while taking an extra which is the MAC address.
-            Intent i = new Intent(DeviceListActivity.this, MainActivity.class);
-            i.putExtra(EXTRA_DEVICE_ADDRESS, address);
-            startActivity(i);
+            StartMainActivity(address);
         }
     };
+
+    private void StartMainActivity(String address) {
+        // Make an intent to start next activity while taking an extra which is the MAC address.
+        Intent i = new Intent(DeviceListActivity.this, MainActivity.class);
+        i.putExtra(EXTRA_DEVICE_ADDRESS, address);
+        startActivity(i);
+    }
 
     private void checkBTState() {
         // Check device has Bluetooth and that it is turned on
