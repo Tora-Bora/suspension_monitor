@@ -21,6 +21,12 @@ public class AnalysisActivity extends AppCompatActivity {
 
     // EXTRA string to send on to MonitoringActivity
     public static String EXTRA_ANALISIS_DATA = "analisis_data";
+    public static String ANALISIS_TYPE = "analisis_type";
+
+    public static String ANALISIS_SAVE = "analisis_save";
+    public static String ANALISIS_LOAD = "analisis_load";
+
+    public String mAnalisisType = ANALISIS_SAVE;
 
     private BarGraphSeries<DataPoint> mSeries;
 
@@ -33,6 +39,8 @@ public class AnalysisActivity extends AppCompatActivity {
         setContentView(R.layout.activity_analysis);
 
         Intent intent = getIntent();
+
+        mAnalisisType = intent.getStringExtra(ANALISIS_TYPE);
         mAnalisisData = (AnalisisData)intent.getSerializableExtra(EXTRA_ANALISIS_DATA);
 
         double spdinerval = (double) mAnalisisData.histogramData.GetSpeedInterval();

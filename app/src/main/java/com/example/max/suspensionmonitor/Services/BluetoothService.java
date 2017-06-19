@@ -55,7 +55,7 @@ public class BluetoothService extends WorkerService {
                 if (sampleReceiver != null) {
                     //sampleReceiver.ReceiveV1Sample((SampleV1) msg.obj);
                     AnalisisData andata = sampleAnalizer.GetAnalisis();
-                    sampleReceiver.ReceiveSample(sampleAnalizer.ConvertPos(sample.mPos), sample.mV, andata.sag, andata.dynamicSag, sample.mTime);
+                    sampleReceiver.ReceiveSample(sampleAnalizer.ConvertPos(sample.mPos), sample.mV, andata.sag, andata.dynamicSag, sample.mTime );
                 }
 
             }

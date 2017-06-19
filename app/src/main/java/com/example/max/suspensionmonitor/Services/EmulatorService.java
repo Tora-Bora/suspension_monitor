@@ -75,7 +75,7 @@ public class EmulatorService extends WorkerService {
 
                     if (samples > 100) {
                         double sin = Math.sin(sample.mTime * 3);
-                        sample.mPos = 100 + 60 * sin;
+                        sample.mPos = 220 - 60 * sin;
                     } else {
                         sample.mPos = 160;
                     }

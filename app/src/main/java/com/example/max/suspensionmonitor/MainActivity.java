@@ -1,17 +1,22 @@
 package com.example.max.suspensionmonitor;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.IBinder;
+import android.support.annotation.NonNull;
+import android.support.design.widget.BottomNavigationView;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
@@ -31,6 +36,7 @@ import static com.example.max.suspensionmonitor.AnalysisActivity.EXTRA_ANALISIS_
 
 public class MainActivity extends AppCompatActivity implements ISampleReceiver {
 
+    private static final int MY_PERMISSIONS_REQUEST_CREATE_FILE = 1;
     final String LOG_TAG = "myLogs";
 
     private LineGraphSeries<DataPoint> mSeriesPos;
@@ -51,11 +57,20 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.bottom_nav, menu);
+        return true;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.action_measurements:
                 ShowSessionListActivity();
+                return true;
+            case R.id.action_monitor:
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -66,6 +81,24 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+        BottomNavigationView bottomNavigationView = (BottomNavigationView)findViewById(R.id.navigation);
+        bottomNavigationView.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.action_measurements:
+                        ShowSessionListActivity();
+                        return true;
+                    case R.id.action_monitor:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        });
+
 
         GraphView graph = (GraphView) findViewById(R.id.graph);
         mSeriesPos = new LineGraphSeries<>();
@@ -103,7 +136,7 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
         }
 
         serviceIntent.putExtra(DeviceListActivity.EXTRA_DEVICE_ADDRESS, address);
-        //startService(serviceIntent);
+        startService(serviceIntent);
         bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
         bound = true;
 
@@ -123,6 +156,83 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
 
     }
 
+    private void RequestPermissions() {
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.READ_CONTACTS)) {
+
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+                Toast.makeText(this, "shouldShowRequestPermissionRationale", Toast.LENGTH_SHORT).show();
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        MY_PERMISSIONS_REQUEST_CREATE_FILE);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        }
+        else {
+            monitoringService.StartAnalizing();
+        }
+    }
+
+    public void ResetGraph()
+    {
+        GraphView graph = (GraphView) findViewById(R.id.graph);
+        graph.removeAllSeries();
+
+        mSeriesPos = new LineGraphSeries<>();
+        mSeriesPos.setColor(Color.BLUE);
+        graph.addSeries(mSeriesPos);
+
+        mSeriesVel = new LineGraphSeries<>();
+        mSeriesVel.setColor(Color.RED);
+        graph.addSeries(mSeriesVel);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_CREATE_FILE: {
+
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+                    monitoringService.StartAnalizing();
+
+                } else {
+
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                    Toast.makeText(this, "Permission denied!", Toast.LENGTH_SHORT).show();
+                    monitoringService.StartAnalizing();
+                }
+                return;
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
+
     private void ToggleAnalizing() {
 
         if (monitoringService.IsAnalisisStarted()) {
@@ -135,7 +245,8 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
             startActivity(intent);
 
         }else {
-            monitoringService.StartAnalizing();
+            //monitoringService.StartAnalizing();
+            this.RequestPermissions();
         }
     }
 
@@ -188,9 +299,14 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
         super.onStop();
         // Unbind from service
         if (bound) {
+
             monitoringService.setSampleReceiver(null); // unregister
             unbindService(serviceConnection);
             bound = false;
+
+            if (!monitoringService.IsAnalisisStarted()) {
+                monitoringService.stopForeground(true);
+            }
         }
     }
 
@@ -199,6 +315,7 @@ public class MainActivity extends AppCompatActivity implements ISampleReceiver {
         Log.d(LOG_TAG, "onResume");
         super.onResume();
         if (!bound) {
+            ResetGraph();
             bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
             bound = true;
         }

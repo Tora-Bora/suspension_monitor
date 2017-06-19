@@ -60,6 +60,7 @@ public class WorkerService extends Service {
 
     public void StartAnalizing() {
         sampleAnalizer.ResetAnalisis();
+        sampleAnalizer.StartLoging();
         analisisStarted = true;
     }
 
@@ -68,6 +69,7 @@ public class WorkerService extends Service {
         data.stopDate = new Date(System.currentTimeMillis());
         data.histogramData.Normalize();
         sampleAnalizer.ResetAnalisis();
+        sampleAnalizer.StopLogging();
 
         analisisStarted = false;
 
@@ -124,16 +126,16 @@ public class WorkerService extends Service {
         Log.d(TAG, "SERVICE STARTED");
 
 
-        if (!isConnected) {
-            String address = intent.getStringExtra(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
-            Connect(address);
-            isConnected = true;
-        }
-
-        showNotification();
-
-        return START_STICKY;
-        //return super.onStartCommand(intent, flags, startId);
+//        if (!isConnected) {
+//            String address = intent.getStringExtra(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+//            Connect(address);
+//            isConnected = true;
+//        }
+//
+//        showNotification();
+//
+//        return START_STICKY;
+        return super.onStartCommand(intent, flags, startId);
     }
 
 
